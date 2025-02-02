@@ -73,10 +73,38 @@ const login = async (req: Request, res: Response) => {
 
     const token = await createSendToken(user!, res);
 
+    const data = {
+      id: user!._id,
+      name: user!.name,
+      email: user!.email,
+    }
+
     return res.json({
       status: 200,
       message: "User logged in successfully!",
+      data,
       token,
+    });
+  } catch (error: any) {
+    return res.json({
+      status: 500,
+      message: error.message,
+    });
+  }
+};
+
+// TODO: Implement authentication middleware
+const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    const users = await User.find().select("-password");
+    return res.json({
+      status: 200,
+      message: "Users retrieved successfully!",
+      data: users.map((user) => ({
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      })),
     });
   } catch (error: any) {
     return res.json({
@@ -89,4 +117,5 @@ const login = async (req: Request, res: Response) => {
 export default {
   register,
   login,
+  getAllUsers,
 };
