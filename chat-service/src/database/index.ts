@@ -1,4 +1,4 @@
-import User, { IUser } from "./models/UserModel";
+import Message from "./models/MessageModel";
 import { connectDB } from "./connection";
 
-export { User, IUser, connectDB };
+export { Message, connectDB };

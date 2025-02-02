@@ -1,7 +1,7 @@
 {
-  "name": "chat-server",
+  "name": "chat-service",
   "version": "1.0.0",
-  "description": "Chat Service - Chat Server",
+  "description": "Chat Service - Chat Service",
   "main": "src/server.ts",
   "scripts": {
     "dev": "env NODE_ENV=development nodemon src/server.ts",
