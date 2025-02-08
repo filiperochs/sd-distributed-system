@@ -3,12 +3,14 @@ import { Server } from "http";
 import { errorConverter, errorHandler } from "./middleware";
 import config from "./config/configs";
 import { rabbitMQService } from "./services/RabbitMQService";
+import { metricsEndpoint } from "./metrics";
 
 const app: Express = express();
 let server: Server;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(errorConverter);
+app.get('/metrics', metricsEndpoint);
 app.use(errorHandler);
 
 server = app.listen(config.PORT, () => {
