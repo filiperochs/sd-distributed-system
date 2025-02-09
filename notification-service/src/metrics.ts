@@ -17,7 +17,6 @@ export const metricsMiddleware = promBundle({
   promRegistry: registry
 });
 
-// Novas métricas para o notification-service
 const notificationsProcessed = new client.Counter({
   name: 'notifications_processed_total',
   help: 'Total number of notifications processed',

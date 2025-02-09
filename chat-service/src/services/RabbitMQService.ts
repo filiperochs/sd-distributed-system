@@ -1,6 +1,7 @@
 import amqp, { Channel } from "amqplib";
 import { v4 as uuidv4 } from "uuid";
 import config from "../config/config";
+import { notificationsSent, userDetailsRequests } from "../metrics";
 
 class RabbitMQService {
     private requestQueue = "USER_DETAILS_REQUEST";
@@ -39,11 +40,17 @@ class RabbitMQService {
     async requestUserDetails(userId: string, callback: Function) {
         const correlationId = uuidv4();
         this.correlationMap.set(correlationId, callback);
-        this.channel.sendToQueue(
-            this.requestQueue,
-            Buffer.from(JSON.stringify({ userId })),
-            { correlationId }
-        );
+        try {
+            this.channel.sendToQueue(
+                this.requestQueue,
+                Buffer.from(JSON.stringify({ userId })),
+                { correlationId }
+            );
+            userDetailsRequests.inc({ status: "success" });
+        } catch (error) {
+            userDetailsRequests.inc({ status: "failed" });
+            console.error("Erro ao enviar requisição de detalhes do usuário:", error);
+        }
     }
 
     async notifyReceiver(
@@ -68,6 +75,7 @@ class RabbitMQService {
                     config.queue.notifications,
                     Buffer.from(JSON.stringify(notificationPayload))
                 );
+                notificationsSent.inc({ type: "MESSAGE_RECEIVED" });
             } catch (error) {
                 console.error(error);
             }
