@@ -1,12 +1,12 @@
-import amqp, { Channel, Connection } from "amqplib";
+import amqp, { Channel } from "amqplib";
+import { v4 as uuidv4 } from "uuid";
 import config from "../config/config";
-import { User } from "../database";
-import { ApiError } from "../utils";
+import { notificationsSent, userDetailsRequests } from "../metrics";
 
 class RabbitMQService {
     private requestQueue = "USER_DETAILS_REQUEST";
     private responseQueue = "USER_DETAILS_RESPONSE";
-    private connection!: Connection;
+    private correlationMap = new Map();
     private channel!: Channel;
 
     constructor() {
@@ -14,44 +14,73 @@ class RabbitMQService {
     }
 
     async init() {
-        // Establish connection to RabbitMQ server
-        this.connection = await amqp.connect(config.msgBrokerURL!);
-        this.channel = await this.connection.createChannel();
-
-        // Asserting queues ensures they exist
+        const connection = await amqp.connect(config.msgBrokerURL!);
+        this.channel = await connection.createChannel();
         await this.channel.assertQueue(this.requestQueue);
         await this.channel.assertQueue(this.responseQueue);
 
-        // Start listening for messages on the request queue
-        this.listenForRequests();
+        this.channel.consume(
+            this.responseQueue,
+            (msg) => {
+                if (msg) {
+                    const correlationId = msg.properties.correlationId;
+                    const user = JSON.parse(msg.content.toString());
+
+                    const callback = this.correlationMap.get(correlationId);
+                    if (callback) {
+                        callback(user);
+                        this.correlationMap.delete(correlationId);
+                    }
+                }
+            },
+            { noAck: true }
+        );
     }
 
-    private async listenForRequests() {
-        this.channel.consume(this.requestQueue, async (msg) => {
-            if (msg && msg.content) {
-                const { userId } = JSON.parse(msg.content.toString());
-                const userDetails = await getUserDetails(userId);
+    async requestUserDetails(userId: string, callback: Function) {
+        const correlationId = uuidv4();
+        this.correlationMap.set(correlationId, callback);
+        try {
+            this.channel.sendToQueue(
+                this.requestQueue,
+                Buffer.from(JSON.stringify({ userId })),
+                { correlationId }
+            );
+            userDetailsRequests.inc({ status: "success" });
+        } catch (error) {
+            userDetailsRequests.inc({ status: "failed" });
+            console.error("Erro ao enviar requisição de detalhes do usuário:", error);
+        }
+    }
 
-                // Send the user details response
+    async notifyReceiver(
+        receiverId: string,
+        messageContent: string,
+        senderEmail: string,
+        senderName: string
+    ) {
+        await this.requestUserDetails(receiverId, async (user: any) => {
+            const notificationPayload = {
+                type: "MESSAGE_RECEIVED",
+                userId: receiverId,
+                userEmail: user.email,
+                message: messageContent,
+                from: senderEmail,
+                fromName: senderName,
+            };
+
+            try {
+                await this.channel.assertQueue(config.queue.notifications);
                 this.channel.sendToQueue(
-                    this.responseQueue,
-                    Buffer.from(JSON.stringify(userDetails)),
-                    { correlationId: msg.properties.correlationId }
+                    config.queue.notifications,
+                    Buffer.from(JSON.stringify(notificationPayload))
                 );
-
-                // Acknowledge the processed message
-                this.channel.ack(msg);
+                notificationsSent.inc({ type: "MESSAGE_RECEIVED" });
+            } catch (error) {
+                console.error(error);
             }
         });
     }
 }
 
-const getUserDetails = async (userId: string) => {
-    const userDetails = await User.findById(userId).select("-password");
-    if (!userDetails) {
-        throw new ApiError(404, "User not found");
-    }
-
-    return userDetails;
-};
 export const rabbitMQService = new RabbitMQService();
