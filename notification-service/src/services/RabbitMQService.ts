@@ -18,11 +18,12 @@ class RabbitMQService {
 
   async init() {
     // const connection = await amqp.connect(config.msgBrokerURL!);
-    // this.channel = await connection.createChannel();
-    // await this.consumeNotification();
     try {
       this.connection = await amqp.connect(config.msgBrokerURL!);
       rabbitmqConnectionStatus.set(1); // Conexão bem-sucedida
+
+      this.channel = await this.connection.createChannel();
+      await this.consumeNotification();
 
       this.connection.on('close', () => {
         rabbitmqConnectionStatus.set(0);

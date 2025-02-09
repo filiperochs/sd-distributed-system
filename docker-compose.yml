@@ -58,6 +58,8 @@ services:
     build: ./gateway
     networks:
       - monitor-net
+    environment:
+      - SERVICE_NAME=gateway
     ports:
       - "8080:8080"
     depends_on:

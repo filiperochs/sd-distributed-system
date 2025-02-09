@@ -43,6 +43,8 @@ export const rabbitmqConnectionStatus = new client.Gauge({
 
 registry.registerMetric(notificationsProcessed);
 registry.registerMetric(notificationsSent);
+registry.registerMetric(rabbitmqMessagesProcessed);
+registry.registerMetric(rabbitmqConnectionStatus);
 
 // Endpoint separado para métricas
 export const metricsEndpoint = (req: Request, res: Response) => {

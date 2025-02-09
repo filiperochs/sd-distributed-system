@@ -1,12 +1,15 @@
 import express from "express";
 import proxy from "express-http-proxy";
 import cors from "cors";
-import { metricsEndpoint } from "./metrics";
+import { metricsEndpoint, metricsMiddleware } from "./metrics";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// @ts-ignore
+app.use(metricsMiddleware);
 
 const auth = proxy("http://user-service:8081");
 const messages = proxy("http://chat-service:8082");

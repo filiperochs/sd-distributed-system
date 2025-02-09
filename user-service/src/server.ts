@@ -5,12 +5,16 @@ import { errorConverter, errorHandler } from "./middleware";
 import { connectDB } from "./database";
 import config from "./config/config";
 import { rabbitMQService } from "./services/RabbitMQService";
-import { metricsEndpoint } from "./metrics";
+import { metricsEndpoint, metricsMiddleware } from "./metrics";
 
 const app: Express = express();
 let server: Server;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// @ts-ignore
+app.use(metricsMiddleware);
+
 app.use(userRouter);
 app.get("/metrics", metricsEndpoint);
 app.use(errorConverter);
