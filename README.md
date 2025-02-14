@@ -175,3 +175,9 @@ Antes, é necessário configurar o Prometheus no Grafana:
     - Acesse `http://localhost:3000/dashboard/import`.
     - Importe o dashboard `./grafana/Express App-1739115774474.json` para visualizar as métricas dos microsserviços, como tempo de resposta, e quantidade de requisições.
     - Importe o dashboard `./grafana/node-exporter-full.json` para visualizar as métricas do sistema, como uso de CPU, memória e disco.
+
+3.  Com o jmeter instalado, execute o seguinte comando para realizar testes de carga:
+
+    ```bash
+    jmeter -n -t test-plan-10.jmx -l resultados.jtl -e -o relatorio/
+    ```

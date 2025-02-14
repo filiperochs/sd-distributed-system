@@ -45,6 +45,7 @@ const register = async (req: Request, res: Response) => {
     return res.json({
       status: 500,
       message: error.message,
+      data: null,
     });
   }
 };
